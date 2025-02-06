@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Color Guessing Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 1.5rem;
+            color: #333;
+        }
+
+        #colorBox {
+            width: 200px;
+            height: 200px;
+            margin: 20px auto;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        #gameInstructions {
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+            color: #666;
+        }
+
+        #gameStatus {
+            font-size: 1.2rem;
+            margin: 1rem 0;
+            min-height: 1.5em;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        #gameStatus.visible {
+            opacity: 1;
+        }
+
+        #score {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin: 1rem 0;
+            color: #333;
+        }
+
+        #colorOptions {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+
+        @media (min-width: 600px) {
+            #colorOptions {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        .colorOption {
+            width: 100%;
+            height: 100px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .colorOption:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .colorOption:disabled {
+            cursor: not-allowed;
+            opacity: 0.8;
+        }
+
+        #newGameButton {
+            margin-top: 2rem;
+            padding: 0.8rem 2rem;
+            font-size: 1.1rem;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        #newGameButton:hover {
+            background-color: #45a049;
+        }
+
+        .correct {
+            animation: celebrate 0.5s ease;
+        }
+
+        @keyframes celebrate {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+    <h1>Color Guessing Game</h1>
+    
+    <div id="gameInstructions" data-testid="gameInstructions">
+        Can you guess which color matches the box below?
+    </div>
+
+    <div id="colorBox" data-testid="colorBox"></div>
+    
+    <div id="score" data-testid="score">Score: 0</div>
+    
+    <div id="gameStatus" data-testid="gameStatus"></div>
+    
+    <div id="colorOptions"></div>
+    
+    <button id="newGameButton" data-testid="newGameButton">New Game</button>
+
+    <script>
+        const COLORS = [
+            '#FF0000', '#00FF00', '#0000FF', 
+            '#FFFF00', '#FF00FF', '#00FFFF',
+            '#FFA500', '#800080', '#008000',
+            '#FFC0CB', '#A52A2A', '#808080'
+        ];
+
+        let score = 0;
+        let targetColor = '';
+        let isAnimating = false;
+
+        const colorBox = document.getElementById('colorBox');
+        const colorOptions = document.getElementById('colorOptions');
+        const scoreDisplay = document.getElementById('score');
+        const gameStatus = document.getElementById('gameStatus');
+        const newGameButton = document.getElementById('newGameButton');
+
+        function getRandomColors(count) {
+            const shuffled = [...COLORS].sort(() => 0.5 - Math.random());
+            return shuffled.slice(0, count);
+        }
+
+        function showGameStatus(message, isCorrect = false) {
+            gameStatus.textContent = message;
+            gameStatus.classList.add('visible');
+            
+            if (isCorrect) {
+                colorBox.classList.add('correct');
+                setTimeout(() => colorBox.classList.remove('correct'), 500);
+            }
+
+            setTimeout(() => {
+                gameStatus.classList.remove('visible');
+            }, 1500);
+        }
+
+        function handleGuess(color) {
+            if (isAnimating) return;
+            
+            isAnimating = true;
+            const buttons = document.querySelectorAll('.colorOption');
+            buttons.forEach(btn => btn.disabled = true);
+
+            if (color === targetColor) {
+                score++;
+                scoreDisplay.textContent = `Score: ${score}`;
+                showGameStatus('Correct! Well done! 🎉', true);
+                setTimeout(startNewGame, 1500);
+            } else {
+                showGameStatus('Wrong guess! Try again! 😅');
+                setTimeout(() => {
+                    buttons.forEach(btn => btn.disabled = false);
+                    isAnimating = false;
+                }, 1500);
+            }
+        }
+
+        function createColorButtons(colors) {
+            colorOptions.innerHTML = '';
+            colors.forEach(color => {
+                const button = document.createElement('button');
+                button.className = 'colorOption';
+                button.setAttribute('data-testid', 'colorOption');
+                button.style.backgroundColor = color;
+                button.onclick = () => handleGuess(color);
+                colorOptions.appendChild(button);
+            });
+        }
+
+        function startNewGame() {
+            const colors = getRandomColors(6);
+            targetColor = colors[Math.floor(Math.random() * colors.length)];
+            colorBox.style.backgroundColor = targetColor;
+            createColorButtons(colors);
+            isAnimating = false;
+        }
+
+        newGameButton.addEventListener('click', startNewGame);
+        startNewGame();
+    </script>
+</body>
+</html>
